@@ -1,11 +1,12 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
-const User = require('./models/user');
+const db = require('./config/db');
+const User = require('./models/User');
 const Restaurant = require('./models/restaurant');
 const Review = require('./models/review');
+const userRoutes = require('./routes/userRoutes');
 
 const app = express();
 app.use(express.json());
@@ -23,35 +24,10 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// Registro de usuario
-app.post('/api/register', async (req, res) => {
-  const { username, password } = req.body;
-  try {
-    const userId = await User.create(username, password);
-    res.status(201).json({ message: 'Usuario registrado', id: userId });
-  } catch (err) {
-    res.status(500).json({ err: 'Error al registrar usuario', fatal: true });
-  }
-});
+// Usa las rutas de usuario
+app.use('/api/users', userRoutes);
 
-// Inicio de sesión
-app.post('/api/login', async (req, res) => {
-  const { username, password } = req.body;
-  try {
-    const user = await User.findByUsername(username);
-    if (!user) return res.status(401).json({ message: 'Usuario no encontrado' });
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(401).json({ message: 'Contraseña incorrecta' });
-
-    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET || 'your_secret_key', { expiresIn: '1h' });
-    res.status(200).json({ token });
-  } catch (err) {
-    res.status(500).json({ err: 'Error al iniciar sesión', fatal: true });
-  }
-});
-
-// Crear restaurante
+// Rutas para restaurantes
 app.post('/api/restaurants', authenticateToken, async (req, res) => {
   const { name, latitude, longitude, cuisine_type } = req.body;
   try {
@@ -63,7 +39,6 @@ app.post('/api/restaurants', authenticateToken, async (req, res) => {
   }
 });
 
-// Obtener todos los restaurantes
 app.get('/api/restaurants', async (req, res) => {
   try {
     const restaurants = await Restaurant.findAll();
@@ -73,7 +48,6 @@ app.get('/api/restaurants', async (req, res) => {
   }
 });
 
-// Obtener restaurante por ID
 app.get('/api/restaurants/:id', async (req, res) => {
   try {
     const restaurant = await Restaurant.findById(req.params.id);
@@ -84,7 +58,6 @@ app.get('/api/restaurants/:id', async (req, res) => {
   }
 });
 
-// Actualizar restaurante
 app.put('/api/restaurants/:id', authenticateToken, async (req, res) => {
   const { name, latitude, longitude, cuisine_type } = req.body;
   try {
@@ -96,7 +69,6 @@ app.put('/api/restaurants/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Eliminar restaurante
 app.delete('/api/restaurants/:id', authenticateToken, async (req, res) => {
   try {
     const deleted = await Restaurant.delete(req.params.id);
@@ -107,7 +79,7 @@ app.delete('/api/restaurants/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Crear reseña
+// Rutas para reseñas
 app.post('/api/reviews', authenticateToken, async (req, res) => {
   const { restaurant_id, rating, comment } = req.body;
   try {
@@ -116,6 +88,22 @@ app.post('/api/reviews', authenticateToken, async (req, res) => {
     res.status(201).json({ message: 'Reseña creada', id: reviewId });
   } catch (err) {
     res.status(500).json({ err: 'Error al crear reseña', fatal: true });
+  }
+});
+
+app.get('/api/reviews', async (req, res) => {
+  const { restaurant_id } = req.query;
+  if (!restaurant_id) {
+    return res.status(400).json({ message: 'Se requiere restaurant_id' });
+  }
+  try {
+    const reviews = await Review.findByRestaurantId(restaurant_id);
+    if (reviews.length === 0) {
+      return res.status(404).json({ message: 'No se encontraron reseñas para este restaurante' });
+    }
+    res.status(200).json(reviews);
+  } catch (err) {
+    res.status(500).json({ err: 'Error al obtener reseñas', fatal: true });
   }
 });
 
