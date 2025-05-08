@@ -3,10 +3,11 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 const db = require('./config/db');
-const User = require('./models/User');
-const Restaurant = require('./models/restaurant');
-const Review = require('./models/review');
 const userRoutes = require('./routes/userRoutes');
+const restaurantRoutes = require('./routes/restaurantRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
+const menuRoutes = require('./routes/menuRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 
 const app = express();
 app.use(express.json());
@@ -24,87 +25,17 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// Usa las rutas de usuario
+// Usa las rutas
 app.use('/api/users', userRoutes);
+app.use('/api/restaurants', restaurantRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/menus', menuRoutes);
+app.use('/api/notifications', notificationRoutes);
 
-// Rutas para restaurantes
-app.post('/api/restaurants', authenticateToken, async (req, res) => {
-  const { name, latitude, longitude, cuisine_type } = req.body;
-  try {
-    const user_id = req.user.id;
-    const restaurantId = await Restaurant.create(name, latitude, longitude, cuisine_type, user_id);
-    res.status(201).json({ message: 'Restaurante creado', id: restaurantId });
-  } catch (err) {
-    res.status(500).json({ err: 'Error al crear restaurante', fatal: true });
-  }
-});
-
-app.get('/api/restaurants', async (req, res) => {
-  try {
-    const restaurants = await Restaurant.findAll();
-    res.status(200).json(restaurants);
-  } catch (err) {
-    res.status(500).json({ err: 'Error en la consulta', fatal: true });
-  }
-});
-
-app.get('/api/restaurants/:id', async (req, res) => {
-  try {
-    const restaurant = await Restaurant.findById(req.params.id);
-    if (!restaurant) return res.status(404).json({ message: 'Restaurante no encontrado' });
-    res.status(200).json(restaurant);
-  } catch (err) {
-    res.status(500).json({ err: 'Error en la consulta', fatal: true });
-  }
-});
-
-app.put('/api/restaurants/:id', authenticateToken, async (req, res) => {
-  const { name, latitude, longitude, cuisine_type } = req.body;
-  try {
-    const updated = await Restaurant.update(req.params.id, name, latitude, longitude, cuisine_type);
-    if (updated === 0) return res.status(404).json({ message: 'Restaurante no encontrado' });
-    res.status(200).json({ message: 'Restaurante actualizado' });
-  } catch (err) {
-    res.status(500).json({ err: 'Error al actualizar restaurante', fatal: true });
-  }
-});
-
-app.delete('/api/restaurants/:id', authenticateToken, async (req, res) => {
-  try {
-    const deleted = await Restaurant.delete(req.params.id);
-    if (deleted === 0) return res.status(404).json({ message: 'Restaurante no encontrado' });
-    res.status(200).json({ message: 'Restaurante eliminado' });
-  } catch (err) {
-    res.status(500).json({ err: 'Error al eliminar restaurante', fatal: true });
-  }
-});
-
-// Rutas para reseñas
-app.post('/api/reviews', authenticateToken, async (req, res) => {
-  const { restaurant_id, rating, comment } = req.body;
-  try {
-    const user_id = req.user.id;
-    const reviewId = await Review.create(restaurant_id, user_id, rating, comment);
-    res.status(201).json({ message: 'Reseña creada', id: reviewId });
-  } catch (err) {
-    res.status(500).json({ err: 'Error al crear reseña', fatal: true });
-  }
-});
-
-app.get('/api/reviews', async (req, res) => {
-  const { restaurant_id } = req.query;
-  if (!restaurant_id) {
-    return res.status(400).json({ message: 'Se requiere restaurant_id' });
-  }
-  try {
-    const reviews = await Review.findByRestaurantId(restaurant_id);
-    if (reviews.length === 0) {
-      return res.status(404).json({ message: 'No se encontraron reseñas para este restaurante' });
-    }
-    res.status(200).json(reviews);
-  } catch (err) {
-    res.status(500).json({ err: 'Error al obtener reseñas', fatal: true });
-  }
+// Manejo de errores centralizado
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Error interno del servidor', message: err.message || 'Algo salió mal', fatal: true });
 });
 
 const PORT = process.env.PORT || 3000;

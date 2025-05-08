@@ -1,85 +1,89 @@
-const db = require('../config/db');
+const Restaurant = require('../models/restaurant');
 
-const restaurantController = {
-  getRestaurants: (req, res) => {
-    const query = 'SELECT * FROM restaurants';
-    db.query(query, (err, results) => {
-      if (err) return res.status(500).json({ message: 'Error en la consulta', err });
-      res.status(200).json(results);
-    });
-  },
-
-  getRestaurantById: (req, res) => {
-    const { id } = req.params;
-    const query = 'SELECT * FROM restaurants WHERE id = ?';
-    db.query(query, [id], (err, result) => {
-      if (err) return res.status(500).json({ message: 'Error en la consulta', err });
-      if (result.length === 0) return res.status(404).json({ message: 'Restaurante no encontrado' });
-      res.status(200).json(result[0]);
-    });
-  },
-
-  createRestaurant: (req, res) => {
+class RestaurantController {
+  static async create(req, res) {
     const { name, latitude, longitude, cuisine_type } = req.body;
-    if (!name || !latitude || !longitude) {
-      return res.status(400).json({ message: 'Faltan campos obligatorios' });
+
+    if (!name || typeof name !== 'string' || name.length < 3 || name.length > 100) {
+      return res.status(400).json({ message: 'El nombre debe tener entre 3 y 100 caracteres' });
     }
-    const query = 'INSERT INTO restaurants (name, latitude, longitude, cuisine_type, user_id) VALUES (?, ?, ?, ?, ?)';
-    db.query(query, [name, latitude, longitude, cuisine_type, req.user.id], (err, result) => {
-      if (err) return res.status(500).json({ message: 'Error creando restaurante', err });
-      res.status(201).json({ message: 'Restaurante creado', id: result.insertId });
-    });
-  },
+    if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+      return res.status(400).json({ message: 'Latitude y longitude deben ser números' });
+    }
+    if (!cuisine_type || typeof cuisine_type !== 'string' || cuisine_type.length > 50) {
+      return res.status(400).json({ message: 'El tipo de cocina es requerido y debe tener máximo 50 caracteres' });
+    }
 
-  updateRestaurant: (req, res) => {
-    const { id } = req.params;
+    try {
+      const user_id = req.user.id;
+      const restaurantId = await Restaurant.create(name, latitude, longitude, cuisine_type, user_id);
+      res.status(201).json({ message: 'Restaurante creado', id: restaurantId });
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  static async findAll(req, res) {
+    try {
+      const restaurants = await Restaurant.findAll();
+      res.status(200).json(restaurants);
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  static async findById(req, res) {
+    try {
+      const restaurant = await Restaurant.findById(req.params.id);
+      if (!restaurant) return res.status(404).json({ message: 'Restaurante no encontrado' });
+      res.status(200).json(restaurant);
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  static async update(req, res) {
     const { name, latitude, longitude, cuisine_type } = req.body;
-    const query = 'UPDATE restaurants SET name = ?, latitude = ?, longitude = ?, cuisine_type = ? WHERE id = ? AND user_id = ?';
-    db.query(query, [name, latitude, longitude, cuisine_type, id, req.user.id], (err, result) => {
-      if (err) return res.status(500).json({ message: 'Error actualizando restaurante', err });
-      if (result.affectedRows === 0) return res.status(404).json({ message: 'Restaurante no encontrado o no autorizado' });
+
+    if (!name || typeof name !== 'string' || name.length < 3 || name.length > 100) {
+      return res.status(400).json({ message: 'El nombre debe tener entre 3 y 100 caracteres' });
+    }
+    if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+      return res.status(400).json({ message: 'Latitude y longitude deben ser números' });
+    }
+    if (!cuisine_type || typeof cuisine_type !== 'string' || cuisine_type.length > 50) {
+      return res.status(400).json({ message: 'El tipo de cocina es requerido y debe tener máximo 50 caracteres' });
+    }
+
+    try {
+      const updated = await Restaurant.update(req.params.id, name, latitude, longitude, cuisine_type);
+      if (updated === 0) return res.status(404).json({ message: 'Restaurante no encontrado' });
       res.status(200).json({ message: 'Restaurante actualizado' });
-    });
-  },
+    } catch (err) {
+      throw err;
+    }
+  }
 
-  deleteRestaurant: (req, res) => {
-    const { id } = req.params;
-    const query = 'DELETE FROM restaurants WHERE id = ? AND user_id = ?';
-    db.query(query, [id, req.user.id], (err, result) => {
-      if (err) return res.status(500).json({ message: 'Error eliminando restaurante', err });
-      if (result.affectedRows === 0) return res.status(404).json({ message: 'Restaurante no encontrado o no autorizado' });
+  static async delete(req, res) {
+    try {
+      const deleted = await Restaurant.delete(req.params.id);
+      if (deleted === 0) return res.status(404).json({ message: 'Restaurante no encontrado' });
       res.status(200).json({ message: 'Restaurante eliminado' });
-    });
-  },
-
-  filterRestaurants: (req, res) => {
-    const { cuisine_type, latitude, longitude, rating } = req.query;
-    let query = 'SELECT r.* FROM restaurants r LEFT JOIN reviews rv ON r.id = rv.restaurant_id';
-    let conditions = [];
-    let params = [];
-
-    if (cuisine_type) {
-      conditions.push('r.cuisine_type = ?');
-      params.push(cuisine_type);
+    } catch (err) {
+      throw err;
     }
-    if (latitude && longitude) {
-      conditions.push(`(6371 * acos(cos(radians(?)) * cos(radians(r.latitude)) * cos(radians(r.longitude) - radians(?)) + sin(radians(?)) * sin(radians(r.latitude)))) < 10`);
-      params.push(latitude, longitude, latitude);
-    }
-    if (rating) {
-      query += ' GROUP BY r.id HAVING AVG(rv.rating) >= ?';
-      params.push(rating);
-    }
+  }
 
-    if (conditions.length > 0) {
-      query += ' WHERE ' + conditions.join(' AND ');
+  static async getRecommendations(req, res) {
+    try {
+      const [rows] = await db.promise().query(
+        'SELECT r.*, AVG(re.rating) as average_rating FROM restaurants r LEFT JOIN reviews re ON r.id = re.restaurant_id GROUP BY r.id ORDER BY average_rating DESC LIMIT 5'
+      );
+      res.status(200).json(rows);
+    } catch (err) {
+      throw err;
     }
+  }
+}
 
-    db.query(query, params, (err, results) => {
-      if (err) return res.status(500).json({ message: 'Error filtrando restaurantes', err });
-      res.status(200).json(results);
-    });
-  },
-};
-
-module.exports = restaurantController;
+module.exports = RestaurantController;

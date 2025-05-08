@@ -1,47 +1,43 @@
-const db = require('../config/db');
+const Review = require('../models/review');
 
-const reviewController = {
-  getReviews: (req, res) => {
-    const { restaurantId } = req.params;
-    const query = 'SELECT * FROM reviews WHERE restaurant_id = ?';
-    db.query(query, [restaurantId], (err, results) => {
-      if (err) return res.status(500).json({ message: 'Error en la consulta', err });
-      res.status(200).json(results);
-    });
-  },
-
-  createReview: (req, res) => {
+class ReviewController {
+  static async create(req, res) {
     const { restaurant_id, rating, comment } = req.body;
-    if (!restaurant_id || !rating) {
-      return res.status(400).json({ message: 'Faltan campos obligatorios' });
+
+    if (!restaurant_id || typeof restaurant_id !== 'number') {
+      return res.status(400).json({ message: 'El restaurant_id es requerido y debe ser un número' });
     }
-    const query = 'INSERT INTO reviews (restaurant_id, user_id, rating, comment) VALUES (?, ?, ?, ?)';
-    db.query(query, [restaurant_id, req.user.id, rating, comment], (err, result) => {
-      if (err) return res.status(500).json({ message: 'Error creando reseña', err });
-      res.status(201).json({ message: 'Reseña creada', id: result.insertId });
-    });
-  },
+    if (!rating || typeof rating !== 'number' || rating < 1 || rating > 5) {
+      return res.status(400).json({ message: 'El rating debe estar entre 1 y 5' });
+    }
+    if (comment && typeof comment !== 'string' && comment.length > 500) {
+      return res.status(400).json({ message: 'El comentario no puede superar los 500 caracteres' });
+    }
 
-  updateReview: (req, res) => {
-    const { id } = req.params;
-    const { rating, comment } = req.body;
-    const query = 'UPDATE reviews SET rating = ?, comment = ? WHERE id = ? AND user_id = ?';
-    db.query(query, [rating, comment, id, req.user.id], (err, result) => {
-      if (err) return res.status(500).json({ message: 'Error actualizando reseña', err });
-      if (result.affectedRows === 0) return res.status(404).json({ message: 'Reseña no encontrada o no autorizada' });
-      res.status(200).json({ message: 'Reseña actualizada' });
-    });
-  },
+    try {
+      const user_id = req.user.id;
+      const reviewId = await Review.create(restaurant_id, user_id, rating, comment);
+      res.status(201).json({ message: 'Reseña creada', id: reviewId });
+    } catch (err) {
+      throw err;
+    }
+  }
 
-  deleteReview: (req, res) => {
-    const { id } = req.params;
-    const query = 'DELETE FROM reviews WHERE id = ? AND user_id = ?';
-    db.query(query, [id, req.user.id], (err, result) => {
-      if (err) return res.status(500).json({ message: 'Error eliminando reseña', err });
-      if (result.affectedRows === 0) return res.status(404).json({ message: 'Reseña no encontrada o no autorizada' });
-      res.status(200).json({ message: 'Reseña eliminada' });
-    });
-  },
-};
+  static async findByRestaurantId(req, res) {
+    const { restaurant_id } = req.query;
+    if (!restaurant_id || typeof restaurant_id !== 'number') {
+      return res.status(400).json({ message: 'Se requiere un restaurant_id válido' });
+    }
+    try {
+      const reviews = await Review.findByRestaurantId(restaurant_id);
+      if (reviews.length === 0) {
+        return res.status(404).json({ message: 'No se encontraron reseñas para este restaurante' });
+      }
+      res.status(200).json(reviews);
+    } catch (err) {
+      throw err;
+    }
+  }
+}
 
-module.exports = reviewController;
+module.exports = ReviewController;
