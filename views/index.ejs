@@ -1,0 +1,43 @@
+<%- include('partials/header', { title: 'Inicio', user }) %>
+
+<main class="inicio">
+  <section class="bienvenida">
+    <h1>Sistema de Gestión del Restaurante</h1>
+    <p class="subtexto">
+      Bienvenido al sistema de gestión donde puedes administrar restaurantes y sus reseñas.
+    </p>
+
+    <div class="acciones">
+      <a href="/restaurants" class="boton">Ver Restaurantes</a>
+      <% if (user) { %>
+        <a href="/restaurants/create" class="boton">Crear Restaurante</a>
+      <% } %>
+    </div>
+  </section>
+
+  <section class="paneles">
+    <div class="panel">
+      <h2>Restaurantes</h2>
+      <p>Consulta la lista de restaurantes registrados en el sistema y explora sus datos y ubicación.</p>
+      <div class="grupo-botones">
+        <a href="/restaurants" class="boton-secundario">Ver Restaurantes</a>
+        <% if (user) { %>
+          <a href="/restaurants/create" class="boton-principal">Nuevo Restaurante</a>
+        <% } %>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Reseñas</h2>
+      <p>Revisa lo que otros usuarios opinan sobre los restaurantes y contribuye con tus propias reseñas.</p>
+      <div class="grupo-botones">
+        <a href="/reviews" class="boton-secundario">Ver Reseñas</a>
+        <% if (user) { %>
+          <a href="/reviews/create" class="boton-principal">Escribir Reseña</a>
+        <% } %>
+      </div>
+    </div>
+  </section>
+</main>
+
+<%- include('partials/footer') %>

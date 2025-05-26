@@ -1,0 +1,16 @@
+<%- include('layout', { title: 'Restaurantes' }) %>
+
+<main>
+  <h2>Lista de Restaurantes</h2>
+  <% if (restaurants.length > 0) { %>
+    <% restaurants.forEach(restaurant => { %>
+      <div class="restaurant-card">
+        <h3><%= restaurant.name %></h3>
+        <p>Tipo de cocina: <%= restaurant.cuisine_type %></p>
+        <p>Coordenadas: (<%= restaurant.latitude %>, <%= restaurant.longitude %>)</p>
+      </div>
+    <% }) %>
+  <% } else { %>
+    <p>No hay restaurantes disponibles.</p>
+  <% } %>
+</main>

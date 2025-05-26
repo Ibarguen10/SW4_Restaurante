@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Pago con Mercado Pago</title>
+</head>
+<body>
+  <h1>Realizar Pago</h1>
+
+  <form id="payment-form" method="POST" action="/api/payments/create-preference">
+    <label for="title">Producto:</label>
+    <input type="text" name="title" value="Cena especial" required><br>
+
+    <label for="unit_price">Precio unitario:</label>
+    <input type="number" name="unit_price" value="100" required><br>
+
+    <label for="quantity">Cantidad:</label>
+    <input type="number" name="quantity" value="1" required><br>
+
+    <button type="submit">Pagar</button>
+  </form>
+</body>
+</html>

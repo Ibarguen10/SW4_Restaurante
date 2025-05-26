@@ -1,0 +1,17 @@
+<%- include('../layout', { title: restaurant.name }) %>
+
+<main>
+  <div class="restaurant-detail">
+    <h2><%= restaurant.name %></h2>
+
+    <p><strong>Tipo de cocina:</strong> <%= restaurant.cuisine_type %></p>
+    <p><strong>Latitud:</strong> <%= restaurant.latitude %></p>
+    <p><strong>Longitud:</strong> <%= restaurant.longitude %></p>
+    <p><strong>Creado en:</strong> <%= new Date(restaurant.created_at).toLocaleString() %></p>
+
+    <div class="mt-4">
+      <a href="/restaurants" class="btn btn-secondary">← Volver a la lista</a>
+      <a href="/restaurants/<%= restaurant.id %>/edit" class="btn btn-primary">Editar</a>
+    </div>
+  </div>
+</main>

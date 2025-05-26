@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SW4_Restaurant - <%= title || 'Inicio' %></title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header>
+    <nav class="navbar">
+      <div class="nav-left">
+        <h1><a href="/">SW4_Restaurant</a></h1>
+      </div>
+      <div class="nav-right">
+        <% if (user) { %>
+          <span>Bienvenido, <%= user.username %></span>
+          <a href="/logout">Cerrar Sesión</a>
+        <% } else { %>
+          <a href="/login">Iniciar Sesión</a>
+          <a href="/register">Registrarse</a>
+        <% } %>
+        <a href="/restaurants">Restaurantes</a>
+        <% if (user) { %>
+          <a href="/restaurants/create">Crear Restaurante</a>
+        <% } %>
+      </div>
+    </nav>
+  </header>
+
+  <main class="container">
+    <% if (error) { %>
+      <div class="error"><%= error %></div>
+    <% } %>
+
+    <%- body %>
+  </main>
+</body>
+</html>

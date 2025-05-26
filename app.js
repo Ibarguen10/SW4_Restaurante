@@ -8,9 +8,11 @@ const restaurantRoutes = require('./routes/restaurantRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const menuRoutes = require('./routes/menuRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 
 const app = express();
 app.use(express.json());
+app.use('/api/payments', paymentRoutes);
 
 // Middleware para verificar el token
 const authenticateToken = (req, res, next) => {
@@ -24,6 +26,12 @@ const authenticateToken = (req, res, next) => {
     next();
   });
 };
+
+// Mercado pago
+app.set('view engine', 'ejs');
+app.set('views', __dirname + '/views');
+app.use(express.static(__dirname + '/public'));
+
 
 // Usa las rutas
 app.use('/api/users', userRoutes);
